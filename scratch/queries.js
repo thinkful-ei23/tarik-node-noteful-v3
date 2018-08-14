@@ -8,7 +8,7 @@ const Note = require('../models/note');
 /*mongoose.connect(MONGODB_URI)
   .then(() => {
     const searchTerm = 'lady gaga';
-    const contSearch = 'aliquam'
+    const contSearch = 'aliquam';
     let filter = {};
 
     if (searchTerm) {
