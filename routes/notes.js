@@ -67,10 +67,39 @@ router.post('/', (req, res, next) => {
 
 /* ========== PUT/UPDATE A SINGLE ITEM ========== */
 router.put('/:id', (req, res, next) => {
+  if (!(req.params.id && req.body.id && req.params.id === req.body.id)) {
+    const message = (
+      `Request path id (${req.params.id}) and request body id ` +
+      `(${req.body.id}) must match`);
+    console.error(message);
+    return res.status(400).json({message: message});
+  }
 
-  console.log('Update a Note');
-  res.json({ id: 1, title: 'Updated Temp 1' });
+  const updateObj = {};
+  const updateableFields = ['title', 'content'];
+  updateableFields.forEach(field => {
+    if (field in req.body) {
+      updateObj[field] = req.body[field];
+    }
+  });
 
+  if (!updateObj.title) {
+    const err = new Error('Missing `title` in request body');
+    err.status = 400;
+    return next(err);
+  }
+
+  return Note.findByIdAndUpdate(req.params.id, {$set: updateObj}, {new: true})
+    .then(result => {
+      if (result) {
+        res.json(result);
+      } else {
+        next();
+      }
+    })
+    .catch(err => {
+      next(err);
+    });
 });
 
 /* ========== DELETE/REMOVE A SINGLE ITEM ========== */
