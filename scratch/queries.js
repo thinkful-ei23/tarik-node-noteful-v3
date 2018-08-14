@@ -8,13 +8,21 @@ const Note = require('../models/note');
 /*mongoose.connect(MONGODB_URI)
   .then(() => {
     const searchTerm = 'lady gaga';
+    const contSearch = 'aliquam'
     let filter = {};
 
     if (searchTerm) {
       filter.title = { $regex: searchTerm, $options: 'i' };
     }
 
-    return Note.find(filter).sort({ updatedAt: 'desc' });
+    if (contSearch) {
+      filter.content = { $regex: contSearch, $options: 'i'};
+    }
+
+    return Note.find({
+      $or: [
+        {'title': filter.title}, {'content': filter.content}
+      ]}).sort({ updatedAt: 'desc' });
   })
   .then(results => {
     console.log(results);
