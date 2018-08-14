@@ -1,19 +1,30 @@
 'use strict';
 
 const express = require('express');
+const Note = require('../models/note');
 
 const router = express.Router();
 
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
+  const filter = {};
+  
+  if (req.query['title']) {
+    filter.title = { $regex: req.query['title'], $options: 'i' };
+  }
 
-  console.log('Get All Notes');
-  res.json([
-    { id: 1, title: 'Temp 1' },
-    { id: 2, title: 'Temp 2' },
-    { id: 3, title: 'Temp 3' }
-  ]);
-
+  return Note.find(filter)
+    .sort({ updatedAt: 'desc' })
+    .then(result => {
+      if (result) {
+        res.json(result);
+      } else {
+        next();
+      }
+    })
+    .catch(err => {
+      next(err);
+    });
 });
 
 /* ========== GET/READ A SINGLE ITEM ========== */
