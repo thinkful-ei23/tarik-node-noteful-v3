@@ -7,10 +7,15 @@ const router = express.Router();
 
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
-  const filter = {};
+  let filter = {};
+
+  const { searchTerm } = req.query;
   
-  if (req.query['title']) {
-    filter.title = { $regex: req.query['title'], $options: 'i' };
+  if (searchTerm) {
+    filter = {$or: [
+      {title: {$regex: searchTerm, $options: 'i'}},
+      {content: {$regex: searchTerm, $options: 'i'}}
+    ]};
   }
 
   return Note.find(filter)
