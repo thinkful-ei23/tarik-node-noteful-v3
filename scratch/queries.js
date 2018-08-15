@@ -108,16 +108,30 @@ const Note = require('../models/note');
     console.error(err);
   });*/
 
-mongoose.connect(MONGODB_URI)
+/*mongoose.connect(MONGODB_URI)
   .then(() => {
-    return Note.find({
-      $or: [
-        {'title': 'INVALID'}, {'content': 'INVALID'}
-      ]});
+    return Note.findById({_id: 'DOESNOTEXIST'});
   })
   .then(result => {
     console.log(result);
   })
   .catch(err => {
+    console.error(err);
+  });*/
+
+mongoose.connect(MONGODB_URI)
+  .then(() => {
+    const id = '000000000000000000000007';
+
+    return Note.findById(id);
+  })
+  .then(results => {
+    console.log(results);
+  })
+  .then(() => {
+    return mongoose.disconnect();
+  })
+  .catch(err => {
+    console.error(`ERROR: ${err.message}`);
     console.error(err);
   });
