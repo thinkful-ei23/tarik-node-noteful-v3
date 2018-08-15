@@ -107,3 +107,17 @@ const Note = require('../models/note');
     console.error(`ERROR: ${err.message}`);
     console.error(err);
   });*/
+
+mongoose.connect(MONGODB_URI)
+  .then(() => {
+    return Note.find({
+      $or: [
+        {'title': 'INVALID'}, {'content': 'INVALID'}
+      ]});
+  })
+  .then(result => {
+    console.log(result);
+  })
+  .catch(err => {
+    console.error(err);
+  });
