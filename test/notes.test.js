@@ -85,14 +85,6 @@ describe ('Node Noteful Tests', function() {
           expect(res).to.be.json;
           expect(res.body).to.be.a('array');
           expect(res.body).to.have.length(0);
-          return Note.find({
-            $or: [
-              {'title': invalidQuery}, {'content': invalidQuery}
-            ]});
-        })
-        .then(dbData => {
-          expect(dbData).to.be.a('array');
-          expect(dbData).to.have.length(0);
         });
     });
   });
@@ -132,10 +124,6 @@ describe ('Node Noteful Tests', function() {
           expect(res.body).to.be.a('object');
           expect(res.body).to.have.keys('status', 'message');
           expect(res.body.message).to.equal('Not Found');
-          return Note.findById(invalidId);
-        })
-        .then(dbData => {
-          expect(dbData).to.equal(null);
         });
     });
   });
@@ -178,18 +166,14 @@ describe ('Node Noteful Tests', function() {
       };
 
       return chai.request(app)
-        .post(newItem)
+        .post('/api/notes')
+        .send(newItem)
         .then(res => {
           expect(res).to.have.status(400);
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
           expect(res.body).to.have.keys('status', 'message');
           expect(res.body.message).to.equal('Missing `title` in request body');
-          return Note.create(newItem);
-        })
-        .catch(err => {
-          expect(err).to.exist;
-          //expect(err.message).to.equal('Note validation failed: title: Path `title` is required.');
         });
     });
   });
@@ -247,10 +231,6 @@ describe ('Node Noteful Tests', function() {
           expect(res.body).to.be.a('object');
           expect(res.body).to.have.keys('status', 'message');
           expect(res.body.message).to.equal('Not Found');
-          return Note.findByIdAndUpdate(invalidId, {$set: updateData});
-        })
-        .then(data => {
-          expect(data).to.equal(null);
         });
     });
 
@@ -271,11 +251,6 @@ describe ('Node Noteful Tests', function() {
               expect(res.body).to.be.a('object');
               expect(res.body).to.have.keys('status', 'message');
               expect(res.body.message).to.equal('Missing `title` in request body');
-              return Note.findByIdAndUpdate(updateData.id, {$set: updateData}, {new: true});
-            })
-            .catch(err => {
-              expect(err).to.exist;
-              expect(err.message).to.equal('Note validation failed: title: Path `title` is required.');
             });
         });
     });
