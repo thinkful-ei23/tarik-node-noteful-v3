@@ -99,6 +99,12 @@ router.put('/:id', (req, res, next) => {
     return res.status(400).json({message: message});
   }
 
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    const err = new Error('The `endpoint id` is not valid');
+    err.status = 400;
+    return next(err);
+  }
+
   const updateObj = {};
   const updateableFields = ['title', 'content', 'folderId'];
   updateableFields.forEach(field => {

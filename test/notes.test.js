@@ -50,7 +50,7 @@ describe ('Notes Tests', function() {
           expect(res.body).to.be.a('array');
           expect(res.body).to.have.length(data.length);
           expect(res.body[0]).to.be.a('object');
-          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'folderId', 'createdAt', 'updatedAt');
+          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'folderId', 'tags', 'createdAt', 'updatedAt');
         });
     });
 
@@ -69,7 +69,7 @@ describe ('Notes Tests', function() {
           expect(res).to.be.json;
           expect(res.body).to.be.a('array');
           expect(res.body[0]).to.be.a('object');
-          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'folderId', 'createdAt', 'updatedAt');
+          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'folderId', 'tags', 'createdAt', 'updatedAt');
           return Note.findById(res.body[0].id);
         })
         .then(dbData => {
@@ -110,7 +110,7 @@ describe ('Notes Tests', function() {
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('id', 'title', 'content', 'folderId', 'createdAt', 'updatedAt');
+          expect(res.body).to.have.keys('id', 'title', 'content', 'folderId', 'tags', 'createdAt', 'updatedAt');
           return Note.findById(res.body.id);
         })
         .then(dbData => {
@@ -158,7 +158,7 @@ describe ('Notes Tests', function() {
           expect(res).to.have.header('location');
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('id', 'title', 'folderId', 'content', 'createdAt', 'updatedAt');
+          expect(res.body).to.have.keys('id', 'title', 'content', 'folderId', 'tags', 'createdAt', 'updatedAt');
           // 2) then call the database
           return Note.findById(res.body.id);
         })
@@ -213,7 +213,7 @@ describe ('Notes Tests', function() {
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('id', 'title', 'content', 'folderId', 'createdAt', 'updatedAt');
+          expect(res.body).to.have.keys('id', 'title', 'content', 'folderId', 'tags', 'createdAt', 'updatedAt');
           expect(res.body.id).to.equal(updateData.id);
           expect(res.body.title).to.equal(updateData.title);
           expect(res.body.content).to.equal(updateData.content);
@@ -230,29 +230,30 @@ describe ('Notes Tests', function() {
         });
     });
 
-    // it('should return a 400 error for an invalid id (not a valid Mongo ObjectId)', function() {
-    //   const invalidId = 'invalidId';
-    //   const updateData = {
-    //     id: invalidId,
-    //     title: 'PUT updated title',
-    //     content: 'Updated content'
-    //   };
+    it('should return a 400 error for an invalid id (not a valid Mongo ObjectId)', function() {
+      const invalidId = 'invalidId';
+      const updateData = {
+        id: invalidId,
+        title: 'PUT updated title',
+        content: 'Updated content',
+        tags: []
+      };
 
-    //   return Note.findOne()
-    //     .then(result => {
-    //       updateData.folderId = result.folderId;
-    //       return chai.request(app)
-    //         .put(`/api/notes/${invalidId}`)
-    //         .send(updateData);
-    //     })
-    //     .then(res => {
-    //       expect(res).to.have.status(400);
-    //       expect(res).to.be.json;
-    //       expect(res.body).to.be.a('object');
-    //       expect(res.body).to.have.keys('status', 'message');
-    //       expect(res.body.message).to.equal('The queried id is not a valid Mongo ObjectId');
-    //     });
-    // });
+      return Note.findOne()
+        .then(result => {
+          updateData.folderId = result.folderId;
+          return chai.request(app)
+            .put(`/api/notes/${invalidId}`)
+            .send(updateData);
+        })
+        .then(res => {
+          expect(res).to.have.status(400);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('object');
+          expect(res.body).to.have.keys('status', 'message');
+          expect(res.body.message).to.equal('The `endpoint id` is not valid');
+        });
+    });
 
     it('should respond with a 404 error for a non-existent id', function() {
       const invalidId = 'DOESNOTEXIST';
