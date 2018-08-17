@@ -25,7 +25,8 @@ describe ('Notes Tests', function() {
   beforeEach(function () {
     return Promise.all([
       Folder.insertMany(seedFolders),
-      Note.insertMany(seedNotes)
+      Note.insertMany(seedNotes),
+      Folder.createIndexes()
     ]);
   });
 
@@ -229,7 +230,31 @@ describe ('Notes Tests', function() {
         });
     });
 
-    it('should respond with a 404 for an invalid id', function() {
+    // it('should return a 400 error for an invalid id (not a valid Mongo ObjectId)', function() {
+    //   const invalidId = 'invalidId';
+    //   const updateData = {
+    //     id: invalidId,
+    //     title: 'PUT updated title',
+    //     content: 'Updated content'
+    //   };
+
+    //   return Note.findOne()
+    //     .then(result => {
+    //       updateData.folderId = result.folderId;
+    //       return chai.request(app)
+    //         .put(`/api/notes/${invalidId}`)
+    //         .send(updateData);
+    //     })
+    //     .then(res => {
+    //       expect(res).to.have.status(400);
+    //       expect(res).to.be.json;
+    //       expect(res.body).to.be.a('object');
+    //       expect(res.body).to.have.keys('status', 'message');
+    //       expect(res.body.message).to.equal('The queried id is not a valid Mongo ObjectId');
+    //     });
+    // });
+
+    it('should respond with a 404 error for a non-existent id', function() {
       const invalidId = 'DOESNOTEXIST';
       const updateData = {
         id: invalidId,

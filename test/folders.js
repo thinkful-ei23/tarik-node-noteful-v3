@@ -26,7 +26,8 @@ describe ('Folder Tests', function() {
   beforeEach(function () {
     return Promise.all([
       Folder.insertMany(seedFolders),
-      Note.insertMany(seedNotes)
+      Note.insertMany(seedNotes),
+      Folder.createIndexes()
     ]);
   });
 
@@ -135,24 +136,19 @@ describe ('Folder Tests', function() {
         });
     });
 
-    // it('should return object w/ message prop "The folder name already exists" when posting duplicate folder', function() {
-    //   const newFolder = {};
-
-    //   return Folder.findOne()
-    //     .then(res => {
-    //       newFolder.name = res.name;
-    //       return chai.request(app)
-    //         .post('/api/folders')
-    //         .send(newFolder)
-    //         .then(res => {
-    //           expect(res).to.have.status(400);
-    //           expect(res).to.be.json;
-    //           expect(res.body).to.be.a('object');
-    //           expect(res.body).to.have.keys('status', 'message');
-    //           expect(res.body.message).to.equal('The folder name already exists');
-    //         });
-    //     });
-    // });
+    it('should return an error when given a duplicate name', function () {
+      return Folder.findOne()
+        .then(data => {
+          const newItem = { 'name': data.name };
+          return chai.request(app).post('/api/folders').send(newItem);
+        })
+        .then(res => {
+          expect(res).to.have.status(400);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('object');
+          expect(res.body.message).to.equal('The folder name already exists');
+        });
+    });
   });
 
   describe('PUT /api/folders/:id', function() {
@@ -228,26 +224,22 @@ describe ('Folder Tests', function() {
         });
     });
 
-    // it('should return 400 message when attempting to update to already existing folder', function() {
-    //   const updateData = {};
-    //   let id;
-
-    //   return Folder.findOne()
-    //     .then(res => {
-    //       updateData.name = res.name;
-    //       id = res.id;
-    //       return chai.request(app)
-    //         .put(`/api/folders/${id}`)
-    //         .send(updateData)
-    //         .then(res => {
-    //           expect(res).to.have.status(400);
-    //           expect(res).to.be.json;
-    //           expect(res.body).to.be.a('object');
-    //           expect(res.body).to.have.keys('status', 'message');
-    //           expect(res.body.message).to.equal('The folder name already exists');
-    //         });
-    //     });
-    // });
+    it('should return an error when given a duplicate name', function () {
+      return Folder.find().limit(2)
+        .then(results => {
+          const [item1, item2] = results;
+          item1.name = item2.name;
+          return chai.request(app)
+            .put(`/api/folders/${item1.id}`)
+            .send(item1);
+        })
+        .then(res => {
+          expect(res).to.have.status(400);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('object');
+          expect(res.body.message).to.equal('The folder name already exists');
+        });
+    });
   });
 
   describe('DELETE /api/folders/:id', function() {
