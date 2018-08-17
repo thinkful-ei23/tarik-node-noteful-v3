@@ -3,7 +3,7 @@
 const express = require('express');
 const Folder = require('../models/folder');
 const Note = require('../models/folder');
-const mongodb = require('mongodb');
+const mongoose = require('mongoose');
 const router = express.Router();
 
 /* ========== GET/READ ALL ITEMS ========== */
@@ -22,7 +22,7 @@ router.get('/', (req, res, next) => {
 router.get('/:id', (req, res, next) => {
   const { id } = req.params;
 
-  if (!(mongodb.ObjectID.isValid(id))) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     const err = new Error('The queried id is not a valid Mongo ObjectId');
     err.status = 400;
     return next(err);
@@ -72,7 +72,7 @@ router.put('/:id', (req, res, next) => {
   const updateObj = {};
   const updatableField = 'name';
 
-  if (!(mongodb.ObjectID.isValid(id))) {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
     const err = new Error('The queried id is not a valid Mongo ObjectId');
     err.status = 400;
     return next(err);
@@ -105,15 +105,21 @@ router.put('/:id', (req, res, next) => {
     });
 });
 
-/* ========== DELETE/REMOVE A SINGLE FOLDER + RELATED NOTES ========== */
+/* ========== DELETE/REMOVE A SINGLE FOLDER + SET NOTES.folderId to null ========== */
 router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
 
-  return Folder.findByIdAndRemove(id)
-    .then(() => {
-      return Note.find({folderId: id});
-    })
-    .remove()
+  /***** Never trust users - validate input *****/
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error('The `id` is not valid');
+    err.status = 400;
+    return next(err);
+  }
+
+  return Promise.all([
+    Folder.findByIdAndRemove(id),
+    Note.updateMany({folderId: id}, {$unset: {folderId: ''}}, { strict: false })
+  ])
     .then(() => {
       res.sendStatus(204);
     })

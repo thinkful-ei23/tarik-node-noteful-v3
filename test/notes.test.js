@@ -14,7 +14,7 @@ const seedNotes = require('../db/seed/notes');
 const expect = chai.expect;
 chai.use(chaiHttp);
 
-describe ('Node Noteful Tests', function() {
+describe ('Notes Tests', function() {
   before(function () {
     return mongoose.connect(TEST_MONGODB_URI)
       .then(() => mongoose.connection.db.dropDatabase());
@@ -44,7 +44,7 @@ describe ('Node Noteful Tests', function() {
           expect(res.body).to.be.a('array');
           expect(res.body).to.have.length(data.length);
           expect(res.body[0]).to.be.a('object');
-          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'createdAt', 'updatedAt');
+          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'folderId', 'createdAt', 'updatedAt');
         });
     });
 
@@ -63,7 +63,7 @@ describe ('Node Noteful Tests', function() {
           expect(res).to.be.json;
           expect(res.body).to.be.a('array');
           expect(res.body[0]).to.be.a('object');
-          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'createdAt', 'updatedAt');
+          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'folderId', 'createdAt', 'updatedAt');
           return Note.findById(res.body[0].id);
         })
         .then(dbData => {
@@ -103,7 +103,7 @@ describe ('Node Noteful Tests', function() {
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('id', 'title', 'content', 'createdAt', 'updatedAt');
+          expect(res.body).to.have.keys('id', 'title', 'content', 'folderId', 'createdAt', 'updatedAt');
           return Note.findById(res.body.id);
         })
         .then(dbData => {
@@ -199,7 +199,7 @@ describe ('Node Noteful Tests', function() {
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('id', 'title', 'content', 'createdAt', 'updatedAt');
+          expect(res.body).to.have.keys('id', 'title', 'content', 'folderId', 'createdAt', 'updatedAt');
           expect(res.body.id).to.equal(updateData.id);
           expect(res.body.title).to.equal(updateData.title);
           expect(res.body.content).to.equal(updateData.content);
