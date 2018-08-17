@@ -8,8 +8,10 @@ const app = require('../server');
 const { TEST_MONGODB_URI } = require('../config');
 
 const Note = require('../models/note');
+const Folder = require('../models/folder');
 
 const seedNotes = require('../db/seed/notes');
+const seedFolders = require('../db/seed/folders');
 
 const expect = chai.expect;
 chai.use(chaiHttp);
@@ -21,7 +23,10 @@ describe ('Notes Tests', function() {
   });
 
   beforeEach(function () {
-    return Note.insertMany(seedNotes);
+    return Promise.all([
+      Folder.insertMany(seedFolders),
+      Note.insertMany(seedNotes)
+    ]);
   });
 
   afterEach(function () {
@@ -70,6 +75,7 @@ describe ('Notes Tests', function() {
           expect(res.body[0].id).to.equal(dbData.id);
           expect(res.body[0].title).to.equal(dbData.title);
           expect(res.body[0].content).to.equal(dbData.content);
+          expect(res.body[0].folderId).to.equal(dbData.folderId.toString());
           expect(new Date(res.body[0].createdAt)).to.eql(dbData.createdAt);
           expect(new Date(res.body[0].updatedAt)).to.eql(dbData.updatedAt);
         });
@@ -110,6 +116,7 @@ describe ('Notes Tests', function() {
           expect(res.body.id).to.equal(dbData.id);
           expect(res.body.title).to.equal(dbData.title);
           expect(res.body.content).to.equal(dbData.content);
+          expect(res.body.folderId).to.equal(dbData.folderId.toString());
           expect(new Date(res.body.createdAt)).to.eql(dbData.createdAt);
           expect(new Date(res.body.updatedAt)).to.eql(dbData.updatedAt);
         });
@@ -137,16 +144,20 @@ describe ('Notes Tests', function() {
 
       let res;
       // 1) First, call the API
-      return chai.request(app)
-        .post('/api/notes')
-        .send(newItem)
+      return Note.findOne()
+        .then(result => {
+          newItem.folderId = result.folderId;
+          return chai.request(app)
+            .post('/api/notes')
+            .send(newItem);
+        })
         .then(function (_res) {
           res = _res;
           expect(res).to.have.status(201);
           expect(res).to.have.header('location');
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('id', 'title', 'content', 'createdAt', 'updatedAt');
+          expect(res.body).to.have.keys('id', 'title', 'folderId', 'content', 'createdAt', 'updatedAt');
           // 2) then call the database
           return Note.findById(res.body.id);
         })
@@ -155,6 +166,7 @@ describe ('Notes Tests', function() {
           expect(res.body.id).to.equal(data.id);
           expect(res.body.title).to.equal(data.title);
           expect(res.body.content).to.equal(data.content);
+          expect(res.body.folderId).to.equal(data.folderId.toString());
           expect(new Date(res.body.createdAt)).to.eql(data.createdAt);
           expect(new Date(res.body.updatedAt)).to.eql(data.updatedAt);
         });
@@ -190,6 +202,7 @@ describe ('Notes Tests', function() {
       return Note.findOne()
         .then((res) => {
           updateData.id = res.id;
+          updateData.folderId = res.folderId;
           return chai.request(app)
             .put(`/api/notes/${res.id}`)
             .send(updateData);
@@ -203,12 +216,14 @@ describe ('Notes Tests', function() {
           expect(res.body.id).to.equal(updateData.id);
           expect(res.body.title).to.equal(updateData.title);
           expect(res.body.content).to.equal(updateData.content);
+          expect(res.body.folderId).to.equal(updateData.folderId.toString());
           return Note.findById(res.body.id);
         })
         .then(data => {
           expect(res.body.id).to.equal(data.id);
           expect(res.body.title).to.equal(data.title);
           expect(res.body.content).to.equal(data.content);
+          expect(res.body.folderId).to.equal(data.folderId.toString());
           expect(new Date(res.body.createdAt)).to.eql(data.createdAt);
           expect(new Date(res.body.updatedAt)).to.eql(data.updatedAt);
         });
@@ -222,9 +237,13 @@ describe ('Notes Tests', function() {
         content: 'updated content'
       };
 
-      return chai.request(app)
-        .put(`/api/notes/${invalidId}`)
-        .send(updateData)
+      return Note.findOne()
+        .then(result => {
+          updateData.folderId = result.folderId;
+          return chai.request(app)
+            .put(`/api/notes/${invalidId}`)
+            .send(updateData);
+        })
         .then(res => {
           expect(res).to.have.status(404);
           expect(res).to.be.json;
