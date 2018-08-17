@@ -2,6 +2,7 @@
 
 const express = require('express');
 const Note = require('../models/note');
+const mongoose = require('mongoose');
 
 const router = express.Router();
 
@@ -10,12 +11,17 @@ router.get('/', (req, res, next) => {
   let filter = {};
 
   const { searchTerm } = req.query;
+  const { folderId } = req.query;
   
   if (searchTerm) {
     filter = {$or: [
       {title: {$regex: searchTerm, $options: 'i'}},
       {content: {$regex: searchTerm, $options: 'i'}}
     ]};
+  }
+
+  if (folderId) {
+    filter.folderId = folderId;
   }
 
   return Note.find(filter)
@@ -52,11 +58,24 @@ router.get('/:id', (req, res, next) => {
 router.post('/', (req, res, next) => { 
   const newNote = {
     title: req.body.title,
-    content: req.body.title
+    content: req.body.title,
+    folderId: req.body.folderId
   };
 
   if (!newNote.title) {
     const err = new Error('Missing `title` in request body');
+    err.status = 400;
+    return next(err);
+  }
+
+  if (!newNote.folderId && newNote.folderId !== null) {
+    const err = new Error('Missing `folderId` in request body');
+    err.status = 400;
+    return next(err);
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(newNote.folderId) && newNote.folderId !== null) {
+    const err = new Error('The `folderId` is not valid');
     err.status = 400;
     return next(err);
   }
@@ -81,7 +100,7 @@ router.put('/:id', (req, res, next) => {
   }
 
   const updateObj = {};
-  const updateableFields = ['title', 'content'];
+  const updateableFields = ['title', 'content', 'folderId'];
   updateableFields.forEach(field => {
     if (field in req.body) {
       updateObj[field] = req.body[field];
@@ -93,6 +112,19 @@ router.put('/:id', (req, res, next) => {
     err.status = 400;
     return next(err);
   }
+
+  if (!updateObj.folderId && updateObj.folderId !== null) {
+    const err = new Error('Missing `folderId` in request body');
+    err.status = 400;
+    return next(err);
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(updateObj.folderId) && updateObj.folderId !== null) {
+    const err = new Error('The `folderId` is not valid');
+    err.status = 400;
+    return next(err);
+  }
+
 
   return Note.findByIdAndUpdate(req.params.id, {$set: updateObj}, {new: true})
     .then(result => {
