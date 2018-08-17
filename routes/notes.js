@@ -12,6 +12,7 @@ router.get('/', (req, res, next) => {
 
   const { searchTerm } = req.query;
   const { folderId } = req.query;
+  const { tagId } = req.query;
   
   if (searchTerm) {
     filter = {$or: [
@@ -23,9 +24,14 @@ router.get('/', (req, res, next) => {
   if (folderId) {
     filter.folderId = folderId;
   }
+  
+  if (tagId) {
+    filter.tags = tagId;
+  }
 
   return Note.find(filter)
     .sort({ updatedAt: 'desc' })
+    .populate('tags', 'name')
     .then(result => {
       if (result) {
         res.json(result);
@@ -42,6 +48,7 @@ router.get('/', (req, res, next) => {
 router.get('/:id', (req, res, next) => {
   const { id } = req.params;
   return Note.findById(id)
+    .populate('tags', 'name')
     .then(result => {
       if (result) {
         res.json(result);
@@ -59,7 +66,8 @@ router.post('/', (req, res, next) => {
   const newNote = {
     title: req.body.title,
     content: req.body.title,
-    folderId: req.body.folderId
+    folderId: req.body.folderId,
+    tags: req.body.tags
   };
 
   if (!newNote.title) {
@@ -74,10 +82,26 @@ router.post('/', (req, res, next) => {
     return next(err);
   }
 
+  if (!newNote.tags && newNote.tags !== []) {
+    const err = new Error('Missing `tags` in request body');
+    err.status = 400;
+    return next(err);
+  }
+
   if (!mongoose.Types.ObjectId.isValid(newNote.folderId) && newNote.folderId !== null) {
     const err = new Error('The `folderId` is not valid');
     err.status = 400;
     return next(err);
+  }
+
+  if (newNote.tags !== []) {
+    newNote.tags.forEach(tag => {
+      if (!mongoose.Types.ObjectId.isValid(tag)) {
+        const err = new Error('The `tag id(s)` are not valid');
+        err.status = 400;
+        return next(err);
+      }
+    });
   }
 
   return Note.create(newNote)
@@ -106,7 +130,7 @@ router.put('/:id', (req, res, next) => {
   }
 
   const updateObj = {};
-  const updateableFields = ['title', 'content', 'folderId'];
+  const updateableFields = ['title', 'content', 'folderId', 'tags'];
   updateableFields.forEach(field => {
     if (field in req.body) {
       updateObj[field] = req.body[field];
@@ -125,12 +149,27 @@ router.put('/:id', (req, res, next) => {
     return next(err);
   }
 
+  if (!updateObj.tags && updateObj.tags !== []) {
+    const err = new Error('Missing `tags` in request body');
+    err.status = 400;
+    return next(err);
+  }
+
   if (!mongoose.Types.ObjectId.isValid(updateObj.folderId) && updateObj.folderId !== null) {
     const err = new Error('The `folderId` is not valid');
     err.status = 400;
     return next(err);
   }
 
+  if (updateObj.tags !== []) {
+    updateObj.tags.forEach(tag => {
+      if (!mongoose.Types.ObjectId.isValid(tag)) {
+        const err = new Error('The `tag id(s)` are not valid');
+        err.status = 400;
+        return next(err);
+      }
+    });
+  }
 
   return Note.findByIdAndUpdate(req.params.id, {$set: updateObj}, {new: true})
     .then(result => {
