@@ -2,6 +2,7 @@
 
 const express = require('express');
 const Tag = require('../models/tag');
+const Note = require('../models/note');
 const mongoose = require('mongoose');
 
 const router = express.Router();
@@ -105,7 +106,22 @@ router.put('/:id', (req, res, next) => {
 router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
 
-
+  if(!mongoose.Types.ObjectId.isValid(id)) {
+    const err = new Error('The `id` is not valid');
+    err.status = 400;
+    return next(err);
+  }
+  
+  return Promise.all([
+    Tag.findByIdAndRemove(id),
+    Note.updateMany({}, { $pull: { tags: id}})
+  ])
+    .then(() => {
+      res.sendStatus(204);
+    })
+    .catch(err => {
+      next(err);
+    });
 });
 
 module.exports = router;
