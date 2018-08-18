@@ -92,6 +92,18 @@ describe ('Folder Tests', function() {
           expect(res.body.message).to.equal('The queried id is not a valid Mongo ObjectId');
         });
     });
+
+    it('should respond with a 404: not found for a non-existent id', function() {
+      let invalidId = 'DOESNOTEXIST';
+      return chai.request(app).get(`/api/folders/${invalidId}`)
+        .then(res => {
+          expect(res).to.have.status(404);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('object');
+          expect(res.body).to.have.keys('status', 'message');
+          expect(res.body.message).to.equal('Not Found');
+        });
+    });
   });
 
   describe('POST /api/folders', function() {

@@ -9,9 +9,11 @@ const { TEST_MONGODB_URI } = require('../config');
 
 const Note = require('../models/note');
 const Folder = require('../models/folder');
+const Tag = require('../models/tag');
 
 const seedNotes = require('../db/seed/notes');
 const seedFolders = require('../db/seed/folders');
+const seedTags = require('../db/seed/tags');
 
 const expect = chai.expect;
 chai.use(chaiHttp);
@@ -26,7 +28,9 @@ describe ('Notes Tests', function() {
     return Promise.all([
       Folder.insertMany(seedFolders),
       Note.insertMany(seedNotes),
-      Folder.createIndexes()
+      Tag.insertMany(seedTags),
+      Folder.createIndexes(),
+      Tag.createIndexes()
     ]);
   });
 
@@ -41,7 +45,7 @@ describe ('Notes Tests', function() {
   describe('GET /api/notes', function() {
     it('should return the default array of notes', function() {
       return Promise.all([
-        Note.find(),
+        Note.find().populate('tags', 'name'),
         chai.request(app).get('/api/notes')
       ])
         .then(([data, res]) => {
@@ -54,7 +58,7 @@ describe ('Notes Tests', function() {
         });
     });
 
-    it('should return correct search results for a valid query', function() {
+    it('should return correct search results for a valid searchTerm query', function() {
       let data;
       let res;
 
@@ -111,7 +115,7 @@ describe ('Notes Tests', function() {
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
           expect(res.body).to.have.keys('id', 'title', 'content', 'folderId', 'tags', 'createdAt', 'updatedAt');
-          return Note.findById(res.body.id);
+          return Note.findById(res.body.id).populate('tags', 'name');
         })
         .then(dbData => {
           expect(res.body.id).to.equal(dbData.id);
@@ -148,6 +152,7 @@ describe ('Notes Tests', function() {
       return Note.findOne()
         .then(result => {
           newItem.folderId = result.folderId;
+          newItem.tags = result.tags;
           return chai.request(app)
             .post('/api/notes')
             .send(newItem);
@@ -160,7 +165,7 @@ describe ('Notes Tests', function() {
           expect(res.body).to.be.a('object');
           expect(res.body).to.have.keys('id', 'title', 'content', 'folderId', 'tags', 'createdAt', 'updatedAt');
           // 2) then call the database
-          return Note.findById(res.body.id);
+          return Note.findById(res.body.id).populate('tags', 'name');
         })
         // 3) then compare the API response to the database results
         .then(data => {
@@ -195,12 +200,13 @@ describe ('Notes Tests', function() {
     it('should update and return a note object when given valid data', function() {
       const updateData = {
         title: 'PUT updated title',
-        content: 'updated content'
+        content: 'updated content',
+        tags: []
       };
 
       let res;
 
-      return Note.findOne()
+      return Note.findOne().populate('tags', 'name')
         .then((res) => {
           updateData.id = res.id;
           updateData.folderId = res.folderId;
@@ -218,7 +224,8 @@ describe ('Notes Tests', function() {
           expect(res.body.title).to.equal(updateData.title);
           expect(res.body.content).to.equal(updateData.content);
           expect(res.body.folderId).to.equal(updateData.folderId.toString());
-          return Note.findById(res.body.id);
+          expect(res.body.tags).to.eql(updateData.tags);
+          return Note.findById(res.body.id).populate('tags', 'name');
         })
         .then(data => {
           expect(res.body.id).to.equal(data.id);
@@ -235,13 +242,13 @@ describe ('Notes Tests', function() {
       const updateData = {
         id: invalidId,
         title: 'PUT updated title',
-        content: 'Updated content',
-        tags: []
+        content: 'Updated content'
       };
 
-      return Note.findOne()
+      return Note.findOne().populate('tags', 'name')
         .then(result => {
           updateData.folderId = result.folderId;
+          updateData.tags = result.tags;
           return chai.request(app)
             .put(`/api/notes/${invalidId}`)
             .send(updateData);
@@ -256,14 +263,15 @@ describe ('Notes Tests', function() {
     });
 
     it('should respond with a 404 error for a non-existent id', function() {
-      const invalidId = 'DOESNOTEXIST';
+      const invalidId = 'microsoft123';
       const updateData = {
         id: invalidId,
         title: 'PUT updated title',
-        content: 'updated content'
+        content: 'updated content',
+        tags: []
       };
 
-      return Note.findOne()
+      return Note.findOne().populate('tags', 'name')
         .then(result => {
           updateData.folderId = result.folderId;
           return chai.request(app)
