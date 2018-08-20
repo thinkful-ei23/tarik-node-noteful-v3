@@ -5,19 +5,27 @@ const User = require('../models/user');
 
 const router = express.Router();
 
-router.post('/', (req, res) => {
+router.post('/', (req, res, next) => {
   const { username, password, fullname } = req.body;
 
-  return User.create({
-    username,
-    password,
-    fullname
-  })
+  return User.hashPassword(password)
+    .then(digest => {
+      const newUser = {
+        username,
+        password: digest,
+        fullname
+      };
+      return User.create(newUser);
+    })
     .then(user => {
       return res.status(201).location(`/api/users/${user.id}`).json(user);
     })
     .catch(err => {
-      res.status(500).json({code: 500, message: 'Internal server error'});
+      if (err.code === 11000) {
+        err = new Error('The username already exists');
+        err.status = 400;
+      }
+      next(err);
     });
 });
 
