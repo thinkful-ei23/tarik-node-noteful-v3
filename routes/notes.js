@@ -17,12 +17,15 @@ router.get('/', (req, res, next) => {
   const { searchTerm } = req.query;
   const { folderId } = req.query;
   const { tagId } = req.query;
+  const userId = req.user.id;
+
+  filter = { userId };
   
   if (searchTerm) {
-    filter = {$or: [
+    filter.$or = [
       {title: {$regex: searchTerm, $options: 'i'}},
       {content: {$regex: searchTerm, $options: 'i'}}
-    ]};
+    ];
   }
 
   if (folderId) {
@@ -51,7 +54,9 @@ router.get('/', (req, res, next) => {
 /* ========== GET/READ A SINGLE ITEM ========== */
 router.get('/:id', (req, res, next) => {
   const { id } = req.params;
-  return Note.findById(id)
+  const userId = req.user.id;
+
+  return Note.findOne({ _id: id, userId })
     .populate('tags', 'name')
     .then(result => {
       if (result) {
@@ -66,12 +71,15 @@ router.get('/:id', (req, res, next) => {
 });
 
 /* ========== POST/CREATE AN ITEM ========== */
-router.post('/', (req, res, next) => { 
+router.post('/', (req, res, next) => {
+  const userId = req.user.id;
+
   const newNote = {
     title: req.body.title,
     content: req.body.title,
     folderId: req.body.folderId,
-    tags: req.body.tags
+    tags: req.body.tags,
+    userId
   };
 
   if (!newNote.title) {
@@ -134,12 +142,15 @@ router.put('/:id', (req, res, next) => {
   }
 
   const updateObj = {};
+  const userId = req.user.id;
   const updateableFields = ['title', 'content', 'folderId', 'tags'];
   updateableFields.forEach(field => {
     if (field in req.body) {
       updateObj[field] = req.body[field];
     }
   });
+
+  updateObj.userId = userId;
 
   if (!updateObj.title) {
     const err = new Error('Missing `title` in request body');
@@ -191,7 +202,8 @@ router.put('/:id', (req, res, next) => {
 /* ========== DELETE/REMOVE A SINGLE ITEM ========== */
 router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
-  return Note.findByIdAndRemove(id)
+  const userId = req.user.id;
+  return Note.findOneAndDelete({ _id: id, userId})
     .then(() => {
       res.sendStatus(204);
     })
