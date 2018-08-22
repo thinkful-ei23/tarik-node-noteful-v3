@@ -13,7 +13,8 @@ router.use('/', passport.authenticate('jwt', { session: false, failWithError: tr
 
 /* ========== GET/READ ALL ITEMS ========== */
 router.get('/', (req, res, next) => {
-  return Folder.find()
+  const userId = req.user.id;
+  return Folder.find({ userId })
     .sort({ name: 'asc' })
     .then(result => {
       res.json(result);
@@ -26,6 +27,7 @@ router.get('/', (req, res, next) => {
 /* ========== GET/READ A SINGLE FOLDER ========== */
 router.get('/:id', (req, res, next) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     const err = new Error('The queried id is not a valid Mongo ObjectId');
@@ -33,7 +35,7 @@ router.get('/:id', (req, res, next) => {
     return next(err);
   }
 
-  return Folder.findById(id)
+  return Folder.findOne({ _id: id, userId})
     .then(result => {
       if (result) {
         res.json(result);
@@ -48,8 +50,10 @@ router.get('/:id', (req, res, next) => {
 
 /* ========== POST/CREATE A FOLDER ========== */
 router.post('/', (req, res, next) => {
+  const userId = req.user.id;
   const newFolder = {
-    name: req.body.name
+    name: req.body.name,
+    userId
   };
 
   if (!newFolder.name) {
@@ -74,6 +78,7 @@ router.post('/', (req, res, next) => {
 /* ========== PUT/UPDATE A SINGLE FOLDER ========== */
 router.put('/:id', (req, res, next) => {
   const { id } = req.params;
+  const userId = req.user.id;
   const updateObj = {};
   const updatableField = 'name';
 
@@ -93,7 +98,7 @@ router.put('/:id', (req, res, next) => {
     return next(err);
   }
 
-  return Folder.findByIdAndUpdate(id, {$set: updateObj}, {new: true})
+  return Folder.findOneAndUpdate({_id: id, userId}, {$set: updateObj}, {new: true})
     .then(result => {
       if (result) {
         res.json(result);
@@ -113,6 +118,7 @@ router.put('/:id', (req, res, next) => {
 /* ========== DELETE/REMOVE A SINGLE FOLDER + SET NOTES.folderId to null ========== */
 router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
   /***** Never trust users - validate input *****/
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -122,7 +128,7 @@ router.delete('/:id', (req, res, next) => {
   }
 
   return Promise.all([
-    Folder.findByIdAndRemove(id),
+    Folder.findOneAndRemove({_id: id, userId}),
     Note.updateMany({folderId: id}, {$unset: {folderId: ''}}, { strict: false })
   ])
     .then(() => {

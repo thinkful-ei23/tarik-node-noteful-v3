@@ -150,8 +150,6 @@ router.put('/:id', (req, res, next) => {
     }
   });
 
-  updateObj.userId = userId;
-
   if (!updateObj.title) {
     const err = new Error('Missing `title` in request body');
     err.status = 400;
@@ -186,7 +184,7 @@ router.put('/:id', (req, res, next) => {
     });
   }
 
-  return Note.findByIdAndUpdate(req.params.id, {$set: updateObj}, {new: true})
+  return Note.findOneAndUpdate({_id: req.params.id, userId}, {$set: updateObj}, {new: true})
     .then(result => {
       if (result) {
         res.json(result);

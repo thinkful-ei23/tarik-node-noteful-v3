@@ -13,7 +13,8 @@ router.use('/', passport.authenticate('jwt', { session: false, failWithError: tr
 
 /* ========== GET/READ ALL TAGS ========== */
 router.get('/', (req, res, next) => {
-  return Tag.find()
+  const userId = req.user.id;
+  return Tag.find({ userId })
     .sort({name : 'asc'})
     .then(result => {
       res.json(result);
@@ -25,6 +26,7 @@ router.get('/', (req, res, next) => {
 
 router.get('/:id', (req, res, next) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     const err = new Error('The queried id is not a valid Mongo ObjectId');
@@ -32,7 +34,7 @@ router.get('/:id', (req, res, next) => {
     return next(err);
   }
 
-  return Tag.findById(id)
+  return Tag.findOne({ _id: id, userId })
     .then(result => {
       if (result) {
         res.json(result);
@@ -46,8 +48,10 @@ router.get('/:id', (req, res, next) => {
 });
 
 router.post('/', (req, res, next) => {
+  const userId = req.user.id;
   const newTag = {
-    name: req.body.name
+    name: req.body.name,
+    userId
   };
 
   if (!newTag.name) {
@@ -71,6 +75,7 @@ router.post('/', (req, res, next) => {
 
 router.put('/:id', (req, res, next) => {
   const { id } = req.params;
+  const userId = req.user.id;
   const updateObj = {};
   const updatableField = 'name';
 
@@ -90,7 +95,7 @@ router.put('/:id', (req, res, next) => {
     return next(err);
   }
 
-  return Tag.findByIdAndUpdate(id, {$set: updateObj}, {new: true})
+  return Tag.findOneAndUpdate({ _id: id, userId }, {$set: updateObj}, {new: true})
     .then(result => {
       if (result) {
         res.json(result);
@@ -109,6 +114,7 @@ router.put('/:id', (req, res, next) => {
 
 router.delete('/:id', (req, res, next) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
   if(!mongoose.Types.ObjectId.isValid(id)) {
     const err = new Error('The `id` is not valid');
@@ -117,7 +123,7 @@ router.delete('/:id', (req, res, next) => {
   }
   
   return Promise.all([
-    Tag.findByIdAndRemove(id),
+    Tag.findOneAndRemove({ _id: id, userId }),
     Note.updateMany({}, { $pull: { tags: id}})
   ])
     .then(() => {
