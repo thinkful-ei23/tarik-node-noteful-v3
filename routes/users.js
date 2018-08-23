@@ -56,13 +56,12 @@ router.post('/', (req, res, next) => {
     }
   }
 
-
   return User.hashPassword(password)
     .then(digest => {
       const newUser = {
         username,
         password: digest,
-        fullname
+        fullname: fullname.trim()
       };
       return User.create(newUser);
     })

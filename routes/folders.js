@@ -129,7 +129,7 @@ router.delete('/:id', (req, res, next) => {
 
   return Promise.all([
     Folder.findOneAndRemove({_id: id, userId}),
-    Note.updateMany({folderId: id}, {$unset: {folderId: ''}}, { strict: false })
+    Note.updateMany({folderId: id}, {$unset: {folderId: null}}, { strict: false })
   ])
     .then(() => {
       res.sendStatus(204);
