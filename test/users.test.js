@@ -39,7 +39,7 @@ describe('Users Tests', function() {
     return mongoose.disconnect();
   });
 
-  describe.only('POST /api/users', function() {
+  describe('POST /api/users', function() {
     it('should create a new user', function() {
       const testUser = { username, password, fullname };
 

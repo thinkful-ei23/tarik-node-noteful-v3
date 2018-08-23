@@ -3,16 +3,17 @@
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
 
 const app = require('../server');
-const { TEST_MONGODB_URI } = require('../config');
+const { TEST_MONGODB_URI, JWT_SECRET } = require('../config');
 
 const Folder = require('../models/folder');
-const Note = require('../models/note');
+const User = require('../models/user');
 
 
 const seedFolders = require('../db/seed/folders');
-const seedNotes = require('../db/seed/notes');
+const seedUsers = require('../db/seed/users');
 
 const expect = chai.expect;
 chai.use(chaiHttp);
@@ -23,12 +24,19 @@ describe ('Folder Tests', function() {
       .then(() => mongoose.connection.db.dropDatabase());
   });
 
+  let token;
+  let user;
+
   beforeEach(function () {
     return Promise.all([
+      User.insertMany(seedUsers),
       Folder.insertMany(seedFolders),
-      Note.insertMany(seedNotes),
       Folder.createIndexes()
-    ]);
+    ])
+      .then(([users]) => {
+        user = users[0];
+        token = jwt.sign({ user }, JWT_SECRET, { subject: user.username });
+      });
   });
 
   afterEach(function () {
@@ -42,8 +50,8 @@ describe ('Folder Tests', function() {
   describe('GET /api/folders', function() {
     it('should return the default array of folders', function () {
       return Promise.all([
-        Folder.find(),
-        chai.request(app).get('/api/folders')
+        Folder.find({ userId: user.id }),
+        chai.request(app).get('/api/folders').set('Authorization', `Bearer ${token}`)
       ])
         .then(([data, res]) => {
           expect(res).to.have.status(200);
@@ -51,7 +59,7 @@ describe ('Folder Tests', function() {
           expect(res.body).to.be.a('array');
           expect(res.body).to.have.length(data.length);
           expect(res.body[0]).to.be.a('object');
-          expect(res.body[0]).to.have.keys('name', 'id', 'createdAt', 'updatedAt');
+          expect(res.body[0]).to.have.keys('name', 'id', 'userId', 'createdAt', 'updatedAt');
         });
     });
   });
@@ -60,18 +68,18 @@ describe ('Folder Tests', function() {
     it('should return correct content for a given id', function() {
       let data;
       let res;
-      return Folder.findOne()
+      return Folder.findOne({ userId: user.id })
         .then((_data) => {
           data = _data;
-          return chai.request(app).get(`/api/folders/${data.id}`);
+          return chai.request(app).get(`/api/folders/${data.id}`).set('Authorization', `Bearer ${token}`);
         })
         .then((_res) => {
           res = _res;
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('name', 'id', 'createdAt', 'updatedAt');
-          return Folder.findById(res.body.id);
+          expect(res.body).to.have.keys('name', 'id', 'userId', 'createdAt', 'updatedAt');
+          return Folder.findOne({_id: res.body.id, userId: user.id});
         })
         .then(dbData => {
           expect(res.body.id).to.equal(dbData.id);
@@ -83,7 +91,7 @@ describe ('Folder Tests', function() {
 
     it('should respond with a 400 for an invalid id', function() {
       let invalidId = 'RANDOM';
-      return chai.request(app).get(`/api/folders/${invalidId}`)
+      return chai.request(app).get(`/api/folders/${invalidId}`).set('Authorization', `Bearer ${token}`)
         .then(res => {
           expect(res).to.have.status(400);
           expect(res).to.be.json;
@@ -95,7 +103,7 @@ describe ('Folder Tests', function() {
 
     it('should respond with a 404: not found for a non-existent id', function() {
       let invalidId = 'DOESNOTEXIST';
-      return chai.request(app).get(`/api/folders/${invalidId}`)
+      return chai.request(app).get(`/api/folders/${invalidId}`).set('Authorization', `Bearer ${token}`)
         .then(res => {
           expect(res).to.have.status(404);
           expect(res).to.be.json;
@@ -114,14 +122,15 @@ describe ('Folder Tests', function() {
       return chai.request(app)
         .post('/api/folders')
         .send(newFolder)
+        .set('Authorization', `Bearer ${token}`)
         .then((_res) => {
           res = _res;
           expect(res).to.have.status(201);
           expect(res).to.have.header('location');
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('id', 'name', 'createdAt', 'updatedAt');
-          return Folder.findById(res.body.id);
+          expect(res.body).to.have.keys('id', 'name', 'userId', 'createdAt', 'updatedAt');
+          return Folder.findOne({ _id: res.body.id, userId: user.id });
         })
         .then(data => {
           expect(res.body.id).to.equal(data.id);
@@ -139,6 +148,7 @@ describe ('Folder Tests', function() {
       return chai.request(app)
         .post('/api/folders')
         .send(newFolder)
+        .set('Authorization', `Bearer ${token}`)
         .then(res => {
           expect(res).to.have.status(400);
           expect(res).to.be.json;
@@ -149,10 +159,10 @@ describe ('Folder Tests', function() {
     });
 
     it('should return an error when given a duplicate name', function () {
-      return Folder.findOne()
+      return Folder.findOne({ userId: user.id })
         .then(data => {
           const newItem = { 'name': data.name };
-          return chai.request(app).post('/api/folders').send(newItem);
+          return chai.request(app).post('/api/folders').send(newItem).set('Authorization', `Bearer ${token}`);
         })
         .then(res => {
           expect(res).to.have.status(400);
@@ -171,22 +181,23 @@ describe ('Folder Tests', function() {
 
       let res;
       let findId;
-      return Folder.findOne()
+      return Folder.findOne({ userId: user.id })
         .then((res) => {
           findId = res.id;
           return chai.request(app)
             .put(`/api/folders/${res.id}`)
-            .send(updateData);
+            .send(updateData)
+            .set('Authorization', `Bearer ${token}`);
         })
         .then((_res) => {
           res = _res;
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('id', 'name', 'createdAt', 'updatedAt');
+          expect(res.body).to.have.keys('id', 'name', 'userId', 'createdAt', 'updatedAt');
           expect(res.body.id).to.equal(findId);
           expect(res.body.name).to.equal(updateData.name);
-          return Folder.findById(res.body.id);
+          return Folder.findOne({ _id: res.body.id, userId: user.id });
         })
         .then(data => {
           expect(res.body.id).to.equal(data.id);
@@ -205,6 +216,7 @@ describe ('Folder Tests', function() {
       return chai.request(app)
         .put(`/api/folders/${invalidId}`)
         .send(updateData)
+        .set('Authorization', `Bearer ${token}`)
         .then(res => {
           expect(res).to.have.status(400);
           expect(res).to.be.json;
@@ -220,12 +232,13 @@ describe ('Folder Tests', function() {
       };
       let findId;
 
-      return Note.findOne()
+      return Folder.findOne({ userId: user.id })
         .then(res => {
           findId = res.id;
           return chai.request(app)
             .put(`/api/folders/${findId}`)
             .send(updateData)
+            .set('Authorization', `Bearer ${token}`)
             .then(res => {
               expect(res).to.have.status(400);
               expect(res).to.be.json;
@@ -237,13 +250,14 @@ describe ('Folder Tests', function() {
     });
 
     it('should return an error when given a duplicate name', function () {
-      return Folder.find().limit(2)
+      return Folder.find({ userId: user.id }).limit(2)
         .then(results => {
           const [item1, item2] = results;
           item1.name = item2.name;
           return chai.request(app)
             .put(`/api/folders/${item1.id}`)
-            .send(item1);
+            .send(item1)
+            .set('Authorization', `Bearer ${token}`);
         })
         .then(res => {
           expect(res).to.have.status(400);
@@ -258,14 +272,15 @@ describe ('Folder Tests', function() {
     it('should delete a folder by id then set folderId for related notes to null', function() {
       let id;
 
-      return Folder.findOne()
+      return Folder.findOne({ userId: user.id })
         .then(res => {
           id = res.id;
           return chai.request(app)
             .delete(`/api/folders/${id}`)
+            .set('Authorization', `Bearer ${token}`)
             .then(res => {
               expect(res).to.have.status(204);
-              return Folder.findById(id);
+              return Folder.findOne({ _id: id, userId: user.id });
             })
             .then(data => {
               expect(data).to.equal(null);
