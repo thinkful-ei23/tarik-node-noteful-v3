@@ -2,6 +2,8 @@
 
 const express = require('express');
 const Note = require('../models/note');
+const Folder = require('../models/folder');
+const Tag = require('../models/tag');
 const mongoose = require('mongoose');
 const passport = require('passport');
 
@@ -106,15 +108,44 @@ router.post('/', (req, res, next) => {
     return next(err);
   }
 
+  if (!Array.isArray(newNote.tags)) {
+    const err = new Error('`tags` is not an array');
+    err.status = 400;
+    return next(err);
+  }
+
   if (newNote.tags !== []) {
     newNote.tags.forEach(tag => {
       if (!mongoose.Types.ObjectId.isValid(tag)) {
-        const err = new Error('The `tag id(s)` are not valid');
+        const err = new Error('The `tags` array contains an invalid `id`');
         err.status = 400;
         return next(err);
       }
+      Tag.count({_id: tag, userId})
+        .then(count => {
+          if (count === 0) {
+            const err = new Error('The `tags` array contains a tag that doesn`t belong to the user');
+            err.status = 400;
+            return next(err);
+          }
+        });
     });
   }
+
+  if (newNote.folderId !== null) {
+    Folder.count({_id: newNote.folderId, userId})
+      .then(count => {
+        if (count === 0) {
+          const err = new Error('This `folder` does not belong to the user');
+          err.status = 400;
+          return next(err);
+        }
+      });
+  }
+  
+  
+
+
 
   return Note.create(newNote)
     .then(result => {
