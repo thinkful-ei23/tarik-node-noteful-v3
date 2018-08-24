@@ -197,11 +197,11 @@ describe('Users Tests', function() {
     it('should reject users with duplicate username', function() {
       const testUser = { fullname, username, password };
       const testUserB = { fullname: fullnameB, username: usernameB, password: passwordB };
-      return Promise.all([
-        chai.request(app).post('/api/users').send(testUser),
-        chai.request(app).post('/api/users').send(testUserB)
-      ])
-        .then(([res1, res2]) => {
+      return chai.request(app).post('/api/users').send(testUser)
+        .then(() => {
+          return chai.request(app).post('/api/users').send(testUserB);
+        })
+        .then(res2 => {
           expect(res2).to.have.status(400);
           expect(res2.body).to.be.an('object');
           expect(res2.body).to.have.keys('status', 'message');

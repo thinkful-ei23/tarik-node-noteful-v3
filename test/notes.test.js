@@ -37,7 +37,8 @@ describe ('Notes Tests', function() {
       Note.insertMany(seedNotes),
       Tag.insertMany(seedTags),
       Folder.createIndexes(),
-      Tag.createIndexes()
+      Tag.createIndexes(),
+      Note.createIndexes()
     ])
       .then(([users]) => {
         user = users[0];
@@ -56,8 +57,8 @@ describe ('Notes Tests', function() {
   describe('GET /api/notes', function() {
     it('should return the default array of notes', function() {
       return Promise.all([
-        Note.find({ userId: user.id }).populate('tags', 'name'),
-        chai.request(app).get('/api/notes').set('Authorization', `Bearer ${token}`) 
+        Note.find({ userId: user.id }).populate('tags', 'name').sort({ _id: 'asc' }),
+        chai.request(app).get('/api/notes').set('Authorization', `Bearer ${token}`)
       ])
         .then(([data, res]) => {
           expect(res).to.have.status(200);
@@ -65,7 +66,7 @@ describe ('Notes Tests', function() {
           expect(res.body).to.be.a('array');
           expect(res.body).to.have.length(data.length);
           expect(res.body[1]).to.be.a('object');
-          expect(res.body[1]).to.have.keys('id', 'title', 'content', 'tags', 'userId', 'createdAt', 'updatedAt');
+          expect(res.body[1]).to.have.keys('id', 'title', 'content', 'tags', 'folderId', 'userId', 'createdAt', 'updatedAt');
         });
     });
 
