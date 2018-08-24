@@ -109,6 +109,54 @@ describe ('Notes Tests', function() {
           expect(res.body).to.have.length(0);
         });
     });
+
+    it('should return correct search results for a valid folderId query', function() {
+      let data; 
+      let res;
+      const folderId = '222222222222222222222201';
+
+      return chai.request(app).get(`/api/notes?folderId=${folderId}`).set('Authorization', `Bearer ${token}`)
+        .then(_res => {
+          res = _res;
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('array');
+          expect(res.body[0]).to.be.a('object');
+          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'tags', 'userId', 'folderId', 'createdAt', 'updatedAt');
+          return Note.findOne({ _id: res.body[0].id, userId: user.id });
+        })
+        .then(dbData => {
+          expect(res.body[0].id).to.equal(dbData.id);
+          expect(res.body[0].title).to.equal(dbData.title);
+          expect(res.body[0].content).to.equal(dbData.content);
+          expect(new Date(res.body[0].createdAt)).to.eql(dbData.createdAt);
+          expect(new Date(res.body[0].updatedAt)).to.eql(dbData.updatedAt);
+        });
+    });
+
+    it('should return correct search results for a valid tagId query', function() {
+      let data;
+      let res;
+      const tagId = '333333333333333333333301';
+
+      return chai.request(app).get(`/api/notes?tagId=${tagId}`).set('Authorization', `Bearer ${token}`)
+        .then(_res => {
+          res = _res;
+          expect(res).to.have.status(200);
+          expect(res).to.be.json;
+          expect(res.body).to.be.a('array');
+          expect(res.body[0]).to.be.a('object');
+          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'tags', 'userId', 'folderId', 'createdAt', 'updatedAt');
+          return Note.findOne({ _id: res.body[0].id, userId: user.id });
+        })
+        .then(dbData => {
+          expect(res.body[0].id).to.equal(dbData.id);
+          expect(res.body[0].title).to.equal(dbData.title);
+          expect(res.body[0].content).to.equal(dbData.content);
+          expect(new Date(res.body[0].createdAt)).to.eql(dbData.createdAt);
+          expect(new Date(res.body[0].updatedAt)).to.eql(dbData.updatedAt);
+        });
+    });
   });
 
   describe('GET /api/notes/:id', function() {
