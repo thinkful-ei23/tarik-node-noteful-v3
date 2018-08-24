@@ -90,31 +90,37 @@ router.post('/', (req, res, next) => {
     return next(err);
   }
 
-  if (!newNote.folderId && newNote.folderId !== null) {
-    const err = new Error('Missing `folderId` in request body');
-    err.status = 400;
-    return next(err);
+  if (!newNote.folderId) {
+    newNote.folderId = null;
   }
 
-  if (!newNote.tags && newNote.tags !== []) {
-    const err = new Error('Missing `tags` in request body');
-    err.status = 400;
-    return next(err);
+  if (!newNote.tags) {
+    newNote.tags = [];
   }
 
-  if (!mongoose.Types.ObjectId.isValid(newNote.folderId) && newNote.folderId !== null) {
-    const err = new Error('The `folderId` is not valid');
-    err.status = 400;
-    return next(err);
+  if (newNote.folderId) {
+    if (!mongoose.Types.ObjectId.isValid(newNote.folderId)) {
+      const err = new Error('The `folderId` is not valid');
+      err.status = 400;
+      return next(err);
+    }
+    Folder.count({_id: newNote.folderId, userId})
+      .then(count => {
+        if (count === 0) {
+          const err = new Error('This `folder` does not belong to the user');
+          err.status = 400;
+          return next(err);
+        }
+      });
   }
 
-  if (!Array.isArray(newNote.tags)) {
-    const err = new Error('`tags` is not an array');
-    err.status = 400;
-    return next(err);
-  }
+  if (newNote.tags) {
+    if (!Array.isArray(newNote.tags)) {
+      const err = new Error('`tags` is not an array');
+      err.status = 400;
+      return next(err);
+    }
 
-  if (newNote.tags !== []) {
     newNote.tags.forEach(tag => {
       if (!mongoose.Types.ObjectId.isValid(tag)) {
         const err = new Error('The `tags` array contains an invalid `id`');
@@ -131,21 +137,6 @@ router.post('/', (req, res, next) => {
         });
     });
   }
-
-  if (newNote.folderId !== null) {
-    Folder.count({_id: newNote.folderId, userId})
-      .then(count => {
-        if (count === 0) {
-          const err = new Error('This `folder` does not belong to the user');
-          err.status = 400;
-          return next(err);
-        }
-      });
-  }
-  
-  
-
-
 
   return Note.create(newNote)
     .then(result => {
@@ -187,31 +178,45 @@ router.put('/:id', (req, res, next) => {
     return next(err);
   }
 
-  if (!updateObj.folderId && updateObj.folderId !== null) {
-    const err = new Error('Missing `folderId` in request body');
-    err.status = 400;
-    return next(err);
+  if (!updateObj.folderId) {
+    updateObj.folderId = null;
   }
 
-  if (!updateObj.tags && updateObj.tags !== []) {
-    const err = new Error('Missing `tags` in request body');
-    err.status = 400;
-    return next(err);
+  if (!updateObj.tags) {
+    updateObj.tags = [];
   }
 
-  if (!mongoose.Types.ObjectId.isValid(updateObj.folderId) && updateObj.folderId !== null) {
-    const err = new Error('The `folderId` is not valid');
-    err.status = 400;
-    return next(err);
+  if (updateObj.folderId) {
+    if (!mongoose.Types.ObjectId.isValid(updateObj.folderId)) {
+      const err = new Error('The `folderId` is not valid');
+      err.status = 400;
+      return next(err);
+    }
+    Folder.count({_id: updateObj.folderId, userId})
+      .then(count => {
+        if (count === 0) {
+          const err = new Error('This `folder` does not belong to the user');
+          err.status = 400;
+          return next(err);
+        }
+      });
   }
 
-  if (updateObj.tags !== []) {
+  if (updateObj.tags) {
     updateObj.tags.forEach(tag => {
       if (!mongoose.Types.ObjectId.isValid(tag)) {
         const err = new Error('The `tag id(s)` are not valid');
         err.status = 400;
         return next(err);
       }
+      Tag.count({_id: tag, userId})
+        .then(count => {
+          if (count === 0) {
+            const err = new Error('The `tags` array contains a tag that doesn`t belong to the user');
+            err.status = 400;
+            return next(err);
+          }
+        });
     });
   }
 

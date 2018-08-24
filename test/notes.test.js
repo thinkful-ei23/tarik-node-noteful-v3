@@ -65,8 +65,8 @@ describe ('Notes Tests', function() {
           expect(res).to.be.json;
           expect(res.body).to.be.a('array');
           expect(res.body).to.have.length(data.length);
-          expect(res.body[1]).to.be.a('object'); 
-          expect(res.body[1]).to.have.keys('id', 'title', 'content', 'tags', 'folderId', 'userId', 'createdAt', 'updatedAt');
+          expect(res.body[0]).to.be.a('object'); 
+          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'tags', 'folderId', 'userId', 'createdAt', 'updatedAt');
         });
     });
 
@@ -85,7 +85,7 @@ describe ('Notes Tests', function() {
           expect(res).to.be.json;
           expect(res.body).to.be.a('array');
           expect(res.body[0]).to.be.a('object');
-          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'tags', 'userId', 'createdAt', 'updatedAt');
+          expect(res.body[0]).to.have.keys('id', 'title', 'content', 'tags', 'userId', 'folderId', 'createdAt', 'updatedAt');
           return Note.findOne({_id: res.body[0].id, userId: user.id });
         })
         .then(dbData => {
@@ -125,7 +125,7 @@ describe ('Notes Tests', function() {
           expect(res).to.have.status(200);
           expect(res).to.be.json;
           expect(res.body).to.be.a('object');
-          expect(res.body).to.have.keys('id', 'title', 'content', 'tags', 'userId', 'createdAt', 'updatedAt');
+          expect(res.body).to.have.keys('id', 'title', 'content', 'tags', 'userId', 'folderId', 'createdAt', 'updatedAt');
           return Note.findOne({ _id: res.body.id, userId: user.id }).populate('tags', 'name');
         })
         .then(dbData => {
