@@ -65,7 +65,7 @@ describe ('Notes Tests', function() {
           expect(res).to.be.json;
           expect(res.body).to.be.a('array');
           expect(res.body).to.have.length(data.length);
-          expect(res.body[1]).to.be.a('object');
+          expect(res.body[1]).to.be.a('object'); 
           expect(res.body[1]).to.have.keys('id', 'title', 'content', 'tags', 'folderId', 'userId', 'createdAt', 'updatedAt');
         });
     });
